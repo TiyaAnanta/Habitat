@@ -25,6 +25,8 @@ export default function HomeScreen({ navigation }) {
         style={styles.container}
         contentContainerStyle={[styles.content, contentStyle]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
         <View style={styles.header}>
           <Text style={styles.appName}>Habitat</Text>

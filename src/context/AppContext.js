@@ -55,6 +55,8 @@ const DEFAULT_QUESTS = [
 export function AppProvider({ children }) {
   const [quests, setQuests] = useState(DEFAULT_QUESTS);
   const [checkinHistory, setCheckinHistory] = useState({});
+  // What was actually done, per quest per day: { [questId]: { [date]: text } }
+  const [logs, setLogs] = useState({});
   const [xp, setXp] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
@@ -68,14 +70,22 @@ export function AppProvider({ children }) {
         if (data.quests) setQuests(data.quests);
         if (data.checkinHistory) setCheckinHistory(data.checkinHistory);
         if (data.xp != null) setXp(data.xp);
+        if (data.logs) setLogs(data.logs);
       }
       setLoaded(true);
     })();
   }, []);
 
+  // Mirrors `logs` so save() can default to the current value. Without this,
+  // every existing save(q, ch, x) call would drop notes on the floor.
+  const logsRef = useRef(logs);
+  useEffect(() => {
+    logsRef.current = logs;
+  }, [logs]);
+
   const save = useCallback(
-    async (q, ch, x) => {
-      await saveData({ quests: q, checkinHistory: ch, xp: x });
+    async (q, ch, x, lg) => {
+      await saveData({ quests: q, checkinHistory: ch, xp: x, logs: lg ?? logsRef.current });
     },
     [saveData]
   );
@@ -208,15 +218,18 @@ export function AppProvider({ children }) {
       const newQuests = quests.filter((q) => q.id !== id);
       const newHistory = { ...checkinHistory };
       delete newHistory[id];
+      const newLogs = { ...logs };
+      delete newLogs[id];
       const newXp = Math.max(0, xp - xpToRemove);
 
       setQuests(newQuests);
       setCheckinHistory(newHistory);
+      setLogs(newLogs);
       setXp(newXp);
-      save(newQuests, newHistory, newXp);
+      save(newQuests, newHistory, newXp, newLogs);
       showToast('Quest permanently deleted');
     },
-    [quests, checkinHistory, xp, save, showToast]
+    [quests, checkinHistory, logs, xp, save, showToast]
   );
 
   const addGoal = useCallback(
@@ -270,11 +283,27 @@ export function AppProvider({ children }) {
     [quests, checkinHistory, xp, save, showToast]
   );
 
+  const setQuestLog = useCallback(
+    (questId, text) => {
+      const today = getToday();
+      const questLogs = { ...(logs[questId] || {}) };
+      const trimmed = text.trim();
+      if (trimmed) questLogs[today] = trimmed;
+      else delete questLogs[today];
+
+      const newLogs = { ...logs, [questId]: questLogs };
+      setLogs(newLogs);
+      save(quests, checkinHistory, xp, newLogs);
+    },
+    [logs, quests, checkinHistory, xp, save]
+  );
+
   const resetAll = useCallback(async () => {
     setQuests(DEFAULT_QUESTS);
     setCheckinHistory({});
+    setLogs({});
     setXp(0);
-    save(DEFAULT_QUESTS, {}, 0);
+    save(DEFAULT_QUESTS, {}, 0, {});
     showToast('All progress reset');
   }, [save, showToast]);
 
@@ -283,11 +312,13 @@ export function AppProvider({ children }) {
       value={{
         quests,
         checkinHistory,
+        logs,
         xp,
         loaded,
         toastMessage,
         checkin,
         uncheckin,
+        setQuestLog,
         addQuest,
         permanentDeleteQuest,
         addGoal,
