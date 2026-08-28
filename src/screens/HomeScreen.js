@@ -5,9 +5,11 @@ import XPHeader from '../components/XPHeader';
 import QuestCard from '../components/QuestCard';
 import Toast from '../components/Toast';
 import { colors, fontSizes, fontWeights, spacing, radii } from '../utils/theme';
+import useScreenLayout from '../hooks/useScreenLayout';
 
 export default function HomeScreen({ navigation }) {
   const { quests, loaded, toastMessage } = useApp();
+  const { wrapperStyle, contentStyle, contentWidth } = useScreenLayout();
 
   if (!loaded) {
     return (
@@ -18,10 +20,10 @@ export default function HomeScreen({ navigation }) {
   }
 
   return (
-    <View style={styles.wrapper}>
+    <View style={[styles.wrapper, wrapperStyle]}>
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, contentStyle]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
@@ -72,7 +74,7 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: colors.bg },
   container: { flex: 1 },
-  content: { padding: spacing.lg, paddingBottom: 32 },
+  content: { paddingTop: spacing.lg, paddingBottom: 32 },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { marginBottom: spacing.lg },
   appName: {

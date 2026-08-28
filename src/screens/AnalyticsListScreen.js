@@ -5,16 +5,18 @@ import { useApp } from '../context/AppContext';
 import { getToday, getStreakInfo } from '../utils/helpers';
 import Toast from '../components/Toast';
 import { colors, radii, fontSizes, fontWeights, spacing } from '../utils/theme';
+import useScreenLayout from '../hooks/useScreenLayout';
 
 export default function AnalyticsListScreen({ navigation }) {
   const { quests, checkinHistory, toastMessage } = useApp();
+  const { wrapperStyle, contentStyle, contentWidth } = useScreenLayout();
   const today = getToday();
 
   return (
-    <View style={styles.wrapper}>
+    <View style={[styles.wrapper, wrapperStyle]}>
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, contentStyle]}
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.title}>Analytics</Text>
@@ -57,7 +59,7 @@ export default function AnalyticsListScreen({ navigation }) {
 const styles = StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: colors.bg },
   container: { flex: 1 },
-  content: { padding: spacing.lg, paddingBottom: 32 },
+  content: { paddingTop: spacing.lg, paddingBottom: 32 },
   title: {
     fontSize: fontSizes.title,
     fontWeight: fontWeights.bold,

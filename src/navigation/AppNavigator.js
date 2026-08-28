@@ -2,6 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import HomeScreen from '../screens/HomeScreen';
 import AnalyticsListScreen from '../screens/AnalyticsListScreen';
@@ -31,6 +32,8 @@ function AnalyticsNavigator() {
 }
 
 export default function AppNavigator() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -52,6 +55,8 @@ export default function AppNavigator() {
           borderTopWidth: 1,
           borderTopColor: '#eee',
           paddingTop: 4,
+          height: 56 + insets.bottom,
+          paddingBottom: insets.bottom,
         },
       })}
     >

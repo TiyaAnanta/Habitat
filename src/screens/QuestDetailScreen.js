@@ -5,7 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Dimensions,
   StyleSheet,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -24,8 +23,7 @@ import {
   getWeeklyData,
 } from '../utils/helpers';
 import { colors, radii, fontSizes, fontWeights, spacing } from '../utils/theme';
-
-const screenWidth = Dimensions.get('window').width - 32;
+import useScreenLayout from '../hooks/useScreenLayout';
 
 const CHART_TABS = ['week', 'month', 'quarter'];
 
@@ -33,6 +31,8 @@ export default function QuestDetailScreen({ route, navigation }) {
   const { questId } = route.params;
   const { quests, checkinHistory, addGoal, toggleGoal, deleteGoal, toastMessage } =
     useApp();
+  const { wrapperStyle, contentStyle, contentWidth } = useScreenLayout();
+  const chartWidth = contentWidth - 8;
   const [activeTab, setActiveTab] = useState('week');
   const [newGoalText, setNewGoalText] = useState('');
   const [showNewGoal, setShowNewGoal] = useState(false);
@@ -40,7 +40,7 @@ export default function QuestDetailScreen({ route, navigation }) {
   const quest = quests.find((q) => q.id === questId);
   if (!quest) {
     return (
-      <View style={styles.wrapper}>
+      <View style={[styles.wrapper, wrapperStyle]}>
         <Text style={{ padding: 20, color: colors.textMuted }}>
           Quest not found.
         </Text>
@@ -103,7 +103,7 @@ export default function QuestDetailScreen({ route, navigation }) {
     <View style={styles.wrapper}>
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, contentStyle]}
         showsVerticalScrollIndicator={false}
       >
         {/* Quest header */}
@@ -194,7 +194,7 @@ export default function QuestDetailScreen({ route, navigation }) {
                 labels: streakLabels,
                 datasets: [{ data: streakValues.length ? streakValues : [0] }],
               }}
-              width={screenWidth - 8}
+              width={chartWidth}
               height={160}
               chartConfig={chartConfig}
               bezier
@@ -215,7 +215,7 @@ export default function QuestDetailScreen({ route, navigation }) {
                 labels: weeklyLabels,
                 datasets: [{ data: weeklyValues.length ? weeklyValues : [0] }],
               }}
-              width={screenWidth - 8}
+              width={chartWidth}
               height={130}
               chartConfig={chartConfig}
               withInnerLines={false}
@@ -295,7 +295,7 @@ export default function QuestDetailScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: colors.bg },
   container: { flex: 1 },
-  content: { padding: spacing.lg, paddingBottom: 32 },
+  content: { paddingTop: spacing.lg, paddingBottom: 32 },
   questHeader: {
     flexDirection: 'row',
     alignItems: 'center',
