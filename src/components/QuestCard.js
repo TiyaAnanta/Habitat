@@ -139,8 +139,8 @@ export default function QuestCard({ quest, onPress }) {
         <View style={styles.noteSection}>
           <Feather
             name="edit-3"
-            size={13}
-            color={note ? quest.color : colors.textFaint}
+            size={14}
+            color={note ? quest.color : colors.textMuted}
             style={styles.noteIcon}
           />
           <TextInput
@@ -150,7 +150,7 @@ export default function QuestCard({ quest, onPress }) {
             onSubmitEditing={commitNote}
             blurOnSubmit
             placeholder="What did you do today?"
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor={colors.textMuted}
             style={styles.noteInput}
             multiline
             returnKeyType="done"
@@ -235,20 +235,20 @@ const styles = StyleSheet.create({
   noteSection: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 6,
+    gap: 8,
     marginTop: 10,
     paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderLight,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
   },
   noteIcon: {
-    marginTop: 3,
+    marginTop: 2,
   },
   noteInput: {
     flex: 1,
-    fontSize: fontSizes.caption,
+    fontSize: fontSizes.body - 1,
     color: colors.textSecondary,
     padding: 0,
-    minHeight: 18,
+    minHeight: 20,
   },
 });
