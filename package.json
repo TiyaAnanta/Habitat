@@ -35,5 +35,14 @@
   "devDependencies": {
     "@babel/core": "^7.25.0"
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": [
+          "react-native-chart-kit"
+        ]
+      }
+    }
+  }
 }

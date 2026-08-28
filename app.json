@@ -29,6 +29,11 @@
       "expo-asset",
       "expo-font"
     ],
-    "newArchEnabled": false
+    "newArchEnabled": false,
+    "extra": {
+      "eas": {
+        "projectId": "f9e719c9-70c7-4a47-a955-f583366dfd13"
+      }
+    }
   }
 }
