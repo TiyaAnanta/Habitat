@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "Habitat",
+    "slug": "habitat",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1a1340"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.tiya.habitat"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1a1340"
+      },
+      "package": "com.tiya.habitat"
+    },
+    "plugins": [
+      "expo-asset",
+      "expo-font"
+    ],
+    "newArchEnabled": false
+  }
+}
