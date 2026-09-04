@@ -11,7 +11,9 @@ export const TITLES = [
 export const IMPORTANCE_LEVELS = [
   { value: 1, label: 'Normal', xpLabel: '5–25 XP', color: '#6B7280' },
   { value: 2, label: 'Important', xpLabel: '10–50 XP', color: '#D97706' },
-  { value: 3, label: 'Critical', xpLabel: '15–75 XP', color: '#DC2626' },
+  { value: 3, label: 'High', xpLabel: '15–75 XP', color: '#DC2626' },
+  { value: 4, label: 'Critical', xpLabel: '20–100 XP', color: '#9333EA' },
+  { value: 5, label: 'Legendary', xpLabel: '25–125 XP', color: '#E11D48' },
 ];
 
 export const DURATION_OPTIONS = [
@@ -40,14 +42,16 @@ export const QUEST_ICONS = [
 ];
 
 export const QUEST_COLORS = [
-  '#534AB7',
-  '#0F6E56',
-  '#D85A30',
-  '#993556',
-  '#185FA5',
-  '#639922',
-  '#BA7517',
-  '#854F0B',
+  { from: '#534AB7', to: '#8B5CF6' },
+  { from: '#0F6E56', to: '#34D399' },
+  { from: '#D85A30', to: '#FB923C' },
+  { from: '#993556', to: '#F472B6' },
+  { from: '#185FA5', to: '#60A5FA' },
+  { from: '#639922', to: '#A3E635' },
+  { from: '#BA7517', to: '#FBBF24' },
+  { from: '#854F0B', to: '#D97706' },
+  { from: '#DC2626', to: '#F87171' },
+  { from: '#7C3AED', to: '#C084FC' },
 ];
 
 export const MILESTONES = [3, 7, 14, 21, 30, 50, 75, 100, 150, 200, 365];

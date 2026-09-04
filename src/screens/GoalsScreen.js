@@ -252,14 +252,19 @@ export default function GoalsScreen() {
             <View style={styles.colorRow}>
               {QUEST_COLORS.map((c) => (
                 <TouchableOpacity
-                  key={c}
-                  onPress={() => setNq({ ...nq, color: c })}
+                  key={c.from}
+                  onPress={() => setNq({ ...nq, color: c.from })}
                   style={[
                     styles.colorDot,
-                    { backgroundColor: c },
-                    nq.color === c && styles.colorDotActive,
+                    { overflow: 'hidden' },
+                    nq.color === c.from && styles.colorDotActive,
                   ]}
-                />
+                >
+                  <View style={{ flex: 1, flexDirection: 'row' }}>
+                    <View style={{ flex: 1, backgroundColor: c.from }} />
+                    <View style={{ flex: 1, backgroundColor: c.to }} />
+                  </View>
+                </TouchableOpacity>
               ))}
             </View>
 

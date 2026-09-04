@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   TextInput,
   StyleSheet,
+  Platform,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LineChart, BarChart } from 'react-native-chart-kit';
@@ -21,6 +22,10 @@ import {
   formatDateFull,
   getChartData,
   getWeeklyData,
+  getWeekKey,
+  getMonthKey,
+  formatWeekRange,
+  formatMonth,
 } from '../utils/helpers';
 import { colors, radii, fontSizes, fontWeights, spacing } from '../utils/theme';
 import useScreenLayout from '../hooks/useScreenLayout';
@@ -29,8 +34,16 @@ const CHART_TABS = ['week', 'month', 'quarter'];
 
 export default function QuestDetailScreen({ route, navigation }) {
   const { questId } = route.params;
-  const { quests, checkinHistory, addGoal, toggleGoal, deleteGoal, toastMessage } =
-    useApp();
+  const {
+    quests,
+    checkinHistory,
+    weeklyProgress,
+    monthlyGoals,
+    addGoal,
+    toggleGoal,
+    deleteGoal,
+    toastMessage,
+  } = useApp();
   const { wrapperStyle, contentStyle, contentWidth } = useScreenLayout();
   const chartWidth = contentWidth - 8;
   const [activeTab, setActiveTab] = useState('week');
@@ -66,7 +79,6 @@ export default function QuestDetailScreen({ route, navigation }) {
   const chartData = getChartData(checkinHistory[questId] || [], today, activeTab);
   const weeklyData = getWeeklyData(checkinHistory[questId] || [], today);
 
-  // Prepare data for react-native-chart-kit
   const streakValues = chartData.map((d) => d.streak);
   const streakLabels = chartData.filter((_, i) => {
     const interval = activeTab === 'week' ? 1 : activeTab === 'month' ? 7 : 15;
@@ -92,6 +104,50 @@ export default function QuestDetailScreen({ route, navigation }) {
     propsForBackgroundLines: { stroke: '#eee' },
   };
 
+  // Weekly progress for this quest (last 8 weeks)
+  const currentWeekKey = getWeekKey(today);
+  const weeklyProgressData = useMemo(() => {
+    const labels = [];
+    const data = [];
+    for (let i = 7; i >= 0; i--) {
+      const wk = addDays(currentWeekKey, -i * 7);
+      const wd = weeklyProgress[wk] || {};
+      const d = new Date(wk + 'T00:00:00');
+      labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+      data.push(wd[questId] || 0);
+    }
+    return { labels, data };
+  }, [weeklyProgress, questId, currentWeekKey]);
+
+  const currentWeekVal = (weeklyProgress[currentWeekKey] || {})[questId];
+
+  // Monthly goals for this quest
+  const currentMonthKey = getMonthKey(today);
+  const currentMonthGoals = (monthlyGoals[currentMonthKey] || {})[questId] || [];
+  const monthlyDone = currentMonthGoals.filter((g) => g.done).length;
+  const monthlyTotal = currentMonthGoals.length;
+  const monthlyPct = monthlyTotal > 0 ? Math.round((monthlyDone / monthlyTotal) * 100) : 0;
+
+  // Last 6 months completion
+  const monthlyHistoryData = useMemo(() => {
+    const labels = [];
+    const data = [];
+    for (let i = 5; i >= 0; i--) {
+      const [y, m] = currentMonthKey.split('-').map(Number);
+      const total = y * 12 + (m - 1) - i;
+      const ny = Math.floor(total / 12);
+      const nm = (total % 12) + 1;
+      const mk = `${ny}-${String(nm).padStart(2, '0')}`;
+      const goals = (monthlyGoals[mk] || {})[questId] || [];
+      const done = goals.filter((g) => g.done).length;
+      const pct = goals.length > 0 ? Math.round((done / goals.length) * 100) : 0;
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      labels.push(months[nm - 1]);
+      data.push(pct);
+    }
+    return { labels, data };
+  }, [monthlyGoals, questId, currentMonthKey]);
+
   const handleAddGoal = () => {
     if (!newGoalText.trim()) return;
     addGoal(questId, newGoalText.trim());
@@ -99,8 +155,26 @@ export default function QuestDetailScreen({ route, navigation }) {
     setShowNewGoal(false);
   };
 
+  const getProgressColor = (val) => {
+    if (val > 1) return '#059669';
+    if (val === 1) return colors.accent;
+    if (val >= 0.5) return '#D97706';
+    return '#DC2626';
+  };
+
   return (
-    <View style={styles.wrapper}>
+    <View style={[styles.wrapper, wrapperStyle]}>
+      {/* Fixed back button with glass background */}
+      <View style={styles.backBar}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+        >
+          <Feather name="arrow-left" size={20} color={colors.textSecondary} />
+          <Text style={styles.backText}>Analytics</Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         style={styles.container}
         contentContainerStyle={[styles.content, contentStyle]}
@@ -159,6 +233,12 @@ export default function QuestDetailScreen({ route, navigation }) {
           </View>
         )}
 
+        {/* === DAILY SECTION === */}
+        <View style={styles.sectionDivider}>
+          <Feather name="sun" size={14} color={colors.textMuted} />
+          <Text style={styles.sectionLabel}>Daily</Text>
+        </View>
+
         {/* Streak chart */}
         <View style={styles.chartSection}>
           <View style={styles.chartHeader}>
@@ -206,7 +286,7 @@ export default function QuestDetailScreen({ route, navigation }) {
           </View>
         </View>
 
-        {/* Weekly bar chart */}
+        {/* Weekly check-ins bar */}
         <View style={styles.chartSection}>
           <Text style={styles.chartTitle}>Weekly check-ins</Text>
           <View style={styles.chartBox}>
@@ -226,7 +306,185 @@ export default function QuestDetailScreen({ route, navigation }) {
           </View>
         </View>
 
-        {/* Goals */}
+        {/* === WEEKLY SECTION === */}
+        <View style={styles.sectionDivider}>
+          <Feather name="calendar" size={14} color={colors.textMuted} />
+          <Text style={styles.sectionLabel}>Weekly progress</Text>
+        </View>
+
+        {/* Current week snapshot */}
+        <View style={styles.weeklyCard}>
+          <View style={styles.weeklyCardHeader}>
+            <Text style={styles.weeklyCardTitle}>{formatWeekRange(currentWeekKey)}</Text>
+            {currentWeekVal != null && (
+              <Text
+                style={[
+                  styles.weeklyCardValue,
+                  { color: getProgressColor(currentWeekVal) },
+                ]}
+              >
+                {currentWeekVal.toFixed(2)}
+              </Text>
+            )}
+          </View>
+          {currentWeekVal != null ? (
+            <View>
+              <View style={styles.weeklyBarTrack}>
+                <View
+                  style={[
+                    styles.weeklyBarFill,
+                    {
+                      width: `${Math.min(currentWeekVal, 1.5) / 1.5 * 100}%`,
+                      backgroundColor: getProgressColor(currentWeekVal),
+                    },
+                  ]}
+                />
+                <View style={styles.weeklyMarker} />
+              </View>
+              <Text style={styles.weeklyBarLabel}>
+                {currentWeekVal > 1 ? 'Overachieved!' : currentWeekVal === 1 ? 'Complete' : `${Math.round(currentWeekVal * 100)}% done`}
+              </Text>
+            </View>
+          ) : (
+            <Text style={styles.weeklyEmpty}>No progress logged this week</Text>
+          )}
+        </View>
+
+        {/* 8-week trend */}
+        {weeklyProgressData.data.some((d) => d > 0) && (
+          <View style={styles.chartSection}>
+            <Text style={styles.chartTitle}>8-week trend</Text>
+            <View style={styles.chartBox}>
+              <BarChart
+                data={{
+                  labels: weeklyProgressData.labels.filter((_, i) => i % 2 === 0),
+                  datasets: [{ data: weeklyProgressData.data }],
+                }}
+                width={chartWidth}
+                height={140}
+                chartConfig={{
+                  ...chartConfig,
+                  decimalPlaces: 1,
+                  barPercentage: 0.6,
+                }}
+                fromZero
+                showValuesOnTopOfBars
+                withInnerLines={false}
+                style={{ borderRadius: radii.md }}
+              />
+            </View>
+          </View>
+        )}
+
+        {/* === MONTHLY SECTION === */}
+        <View style={styles.sectionDivider}>
+          <Feather name="layers" size={14} color={colors.textMuted} />
+          <Text style={styles.sectionLabel}>Monthly goals</Text>
+        </View>
+
+        {/* Current month snapshot */}
+        <View style={styles.monthlyCard}>
+          <View style={styles.monthlyCardHeader}>
+            <Text style={styles.monthlyCardTitle}>{formatMonth(currentMonthKey)}</Text>
+            {monthlyTotal > 0 && (
+              <Text
+                style={[
+                  styles.monthlyCardPct,
+                  {
+                    color:
+                      monthlyPct === 100
+                        ? '#059669'
+                        : monthlyPct >= 50
+                        ? '#D97706'
+                        : colors.textMuted,
+                  },
+                ]}
+              >
+                {monthlyPct}%
+              </Text>
+            )}
+          </View>
+          {monthlyTotal > 0 ? (
+            <View>
+              <View style={styles.monthlyBarTrack}>
+                <View
+                  style={[
+                    styles.monthlyBarFill,
+                    {
+                      width: `${monthlyPct}%`,
+                      backgroundColor:
+                        monthlyPct === 100
+                          ? '#059669'
+                          : monthlyPct >= 50
+                          ? '#D97706'
+                          : quest.color,
+                    },
+                  ]}
+                />
+              </View>
+              <Text style={styles.monthlyBarLabel}>
+                {monthlyDone}/{monthlyTotal} goals completed
+              </Text>
+              {currentMonthGoals.map((g) => (
+                <View key={g.id} style={styles.monthlyGoalRow}>
+                  <Feather
+                    name={g.done ? 'check-circle' : 'circle'}
+                    size={14}
+                    color={g.done ? '#059669' : '#ccc'}
+                  />
+                  <Text
+                    style={[
+                      styles.monthlyGoalText,
+                      g.done && styles.monthlyGoalDone,
+                    ]}
+                  >
+                    {g.text}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text style={styles.monthlyEmpty}>
+              No monthly goals set — add them in the Monthly tab
+            </Text>
+          )}
+        </View>
+
+        {/* 6-month history */}
+        {monthlyHistoryData.data.some((d) => d > 0) && (
+          <View style={styles.chartSection}>
+            <Text style={styles.chartTitle}>Monthly completion (6 months)</Text>
+            <View style={styles.chartBox}>
+              <BarChart
+                data={{
+                  labels: monthlyHistoryData.labels,
+                  datasets: [{ data: monthlyHistoryData.data }],
+                }}
+                width={chartWidth}
+                height={140}
+                chartConfig={{
+                  ...chartConfig,
+                  color: () => '#059669',
+                  fillShadowGradientFrom: '#059669',
+                  fillShadowGradientTo: '#059669',
+                  decimalPlaces: 0,
+                  barPercentage: 0.6,
+                }}
+                fromZero
+                showValuesOnTopOfBars
+                withInnerLines={false}
+                style={{ borderRadius: radii.md }}
+              />
+            </View>
+          </View>
+        )}
+
+        {/* === GOALS SECTION === */}
+        <View style={styles.sectionDivider}>
+          <Feather name="target" size={14} color={colors.textMuted} />
+          <Text style={styles.sectionLabel}>Quest goals</Text>
+        </View>
+
         <View style={styles.goalsSection}>
           <View style={styles.goalsHeader}>
             <Text style={styles.chartTitle}>Goals</Text>
@@ -293,9 +551,38 @@ export default function QuestDetailScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  wrapper: { flex: 1, backgroundColor: colors.bg },
+  wrapper: { flex: 1, backgroundColor: colors.bg, overflow: 'hidden' },
   container: { flex: 1 },
-  content: { paddingTop: spacing.lg, paddingBottom: 32 },
+  content: { paddingTop: 52, paddingBottom: 32 },
+  backBar: {
+    ...Platform.select({
+      web: { position: 'fixed' },
+      default: { position: 'absolute' },
+    }),
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    backgroundColor: 'rgba(249, 249, 248, 0.78)',
+    ...Platform.select({
+      web: { backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' },
+      default: {},
+    }),
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+    paddingHorizontal: spacing.lg,
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: spacing.md,
+  },
+  backText: {
+    fontSize: fontSizes.body,
+    color: colors.textSecondary,
+    fontWeight: fontWeights.medium,
+  },
   questHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -343,6 +630,23 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: radii.pill,
   },
+  sectionDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: spacing.md,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderLight,
+  },
+  sectionLabel: {
+    fontSize: fontSizes.caption,
+    fontWeight: fontWeights.bold,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   chartSection: { marginBottom: spacing.xl },
   chartHeader: {
     flexDirection: 'row',
@@ -372,6 +676,121 @@ const styles = StyleSheet.create({
     padding: 4,
     overflow: 'hidden',
   },
+
+  // Weekly progress
+  weeklyCard: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  weeklyCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  weeklyCardTitle: {
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.semibold,
+    color: colors.textPrimary,
+  },
+  weeklyCardValue: {
+    fontSize: fontSizes.bodyLg,
+    fontWeight: fontWeights.bold,
+  },
+  weeklyBarTrack: {
+    height: 8,
+    backgroundColor: '#eee',
+    borderRadius: radii.pill,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  weeklyBarFill: {
+    height: '100%',
+    borderRadius: radii.pill,
+  },
+  weeklyMarker: {
+    position: 'absolute',
+    left: `${(1 / 1.5) * 100}%`,
+    top: 0,
+    bottom: 0,
+    width: 2,
+    backgroundColor: 'rgba(0,0,0,0.15)',
+  },
+  weeklyBarLabel: {
+    fontSize: fontSizes.xs,
+    color: colors.textMuted,
+    marginTop: 4,
+  },
+  weeklyEmpty: {
+    fontSize: fontSizes.body - 1,
+    color: colors.textFaint,
+    fontStyle: 'italic',
+  },
+
+  // Monthly goals
+  monthlyCard: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  monthlyCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  monthlyCardTitle: {
+    fontSize: fontSizes.body,
+    fontWeight: fontWeights.semibold,
+    color: colors.textPrimary,
+  },
+  monthlyCardPct: {
+    fontSize: fontSizes.bodyLg,
+    fontWeight: fontWeights.bold,
+  },
+  monthlyBarTrack: {
+    height: 8,
+    backgroundColor: '#eee',
+    borderRadius: radii.pill,
+    overflow: 'hidden',
+    marginBottom: 4,
+  },
+  monthlyBarFill: {
+    height: '100%',
+    borderRadius: radii.pill,
+  },
+  monthlyBarLabel: {
+    fontSize: fontSizes.xs,
+    color: colors.textMuted,
+    marginBottom: spacing.sm,
+  },
+  monthlyGoalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 4,
+  },
+  monthlyGoalText: {
+    fontSize: fontSizes.body - 1,
+    color: colors.textSecondary,
+    flex: 1,
+  },
+  monthlyGoalDone: {
+    textDecorationLine: 'line-through',
+    color: '#aaa',
+  },
+  monthlyEmpty: {
+    fontSize: fontSizes.body - 1,
+    color: colors.textFaint,
+    fontStyle: 'italic',
+  },
+
+  // Quest goals
   goalsSection: { marginTop: spacing.sm },
   goalsHeader: {
     flexDirection: 'row',

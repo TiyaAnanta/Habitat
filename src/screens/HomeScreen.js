@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Animated, StyleSheet, ActivityIndicator } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import XPHeader from '../components/XPHeader';
 import QuestCard from '../components/QuestCard';
@@ -10,6 +11,20 @@ import useScreenLayout from '../hooks/useScreenLayout';
 export default function HomeScreen({ navigation }) {
   const { quests, loaded, toastMessage } = useApp();
   const { wrapperStyle, contentStyle, contentWidth } = useScreenLayout();
+  const [xpOpen, setXpOpen] = useState(false);
+  const xpAnim = useRef(new Animated.Value(0)).current;
+
+  const toggleXp = () => {
+    Animated.timing(xpAnim, {
+      toValue: xpOpen ? 0 : 1,
+      duration: 250,
+      useNativeDriver: false,
+    }).start();
+    setXpOpen(!xpOpen);
+  };
+
+  const xpHeight = xpAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 140] });
+  const xpRotate = xpAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
 
   if (!loaded) {
     return (
@@ -50,23 +65,34 @@ export default function HomeScreen({ navigation }) {
           />
         ))}
 
-        <View style={styles.xpInfo}>
-          <Text style={styles.xpInfoTitle}>How XP works</Text>
-          <View style={styles.xpGrid}>
-            {[
-              ['Days 1–6', '5 × weight'],
-              ['Days 7–13', '10 × weight'],
-              ['Days 14–29', '15 × weight'],
-              ['Days 30+', '25 × weight'],
-              ['All quests bonus', '+10 flat'],
-            ].map(([left, right]) => (
-              <View key={left} style={styles.xpRow}>
-                <Text style={styles.xpLabel}>{left}</Text>
-                <Text style={styles.xpValue}>{right}</Text>
-              </View>
-            ))}
+        <TouchableOpacity
+          onPress={toggleXp}
+          activeOpacity={0.7}
+          style={styles.xpInfo}
+        >
+          <View style={styles.xpInfoHeader}>
+            <Text style={styles.xpInfoTitle}>How XP works</Text>
+            <Animated.View style={{ transform: [{ rotate: xpRotate }] }}>
+              <Feather name="chevron-down" size={16} color={colors.textMuted} />
+            </Animated.View>
           </View>
-        </View>
+          <Animated.View style={{ height: xpHeight, overflow: 'hidden' }}>
+            <View style={styles.xpGrid}>
+              {[
+                ['Days 1–6', '5 × weight'],
+                ['Days 7–13', '10 × weight'],
+                ['Days 14–29', '15 × weight'],
+                ['Days 30+', '25 × weight'],
+                ['All quests bonus', '+10 flat'],
+              ].map(([left, right]) => (
+                <View key={left} style={styles.xpRow}>
+                  <Text style={styles.xpLabel}>{left}</Text>
+                  <Text style={styles.xpValue}>{right}</Text>
+                </View>
+              ))}
+            </View>
+          </Animated.View>
+        </TouchableOpacity>
       </ScrollView>
       <Toast message={toastMessage} />
     </View>
@@ -102,11 +128,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
     borderRadius: radii.md,
   },
+  xpInfoHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   xpInfoTitle: {
     fontWeight: fontWeights.semibold,
     color: colors.textSecondary,
     fontSize: fontSizes.caption,
-    marginBottom: spacing.sm,
   },
   xpGrid: { gap: 2 },
   xpRow: {
