@@ -117,6 +117,42 @@ export function getChartData(checkinDays, today, range) {
   return data;
 }
 
+export function getWeekKey(dateStr) {
+  const date = new Date(dateStr + 'T00:00:00');
+  const day = date.getDay();
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+  const monday = new Date(date);
+  monday.setDate(monday.getDate() + mondayOffset);
+  return monday.toISOString().split('T')[0];
+}
+
+export function getMonthKey(dateStr) {
+  return dateStr.substring(0, 7);
+}
+
+export function getWeekDays(weekKey) {
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    days.push(addDays(weekKey, i));
+  }
+  return days;
+}
+
+export function formatWeekRange(weekKey) {
+  const monday = new Date(weekKey + 'T00:00:00');
+  const sunday = new Date(monday);
+  sunday.setDate(sunday.getDate() + 6);
+  const fmt = (d) =>
+    d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return `${fmt(monday)} – ${fmt(sunday)}`;
+}
+
+export function formatMonth(monthKey) {
+  const [y, m] = monthKey.split('-').map(Number);
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  return `${months[m - 1]} ${y}`;
+}
+
 export function getWeeklyData(checkinDays, today) {
   const days = checkinDays || [];
   const weeks = [];

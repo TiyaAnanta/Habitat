@@ -8,6 +8,8 @@ import HomeScreen from '../screens/HomeScreen';
 import AnalyticsListScreen from '../screens/AnalyticsListScreen';
 import QuestDetailScreen from '../screens/QuestDetailScreen';
 import GoalsScreen from '../screens/GoalsScreen';
+import WeeklyScreen from '../screens/WeeklyScreen';
+import MonthlyScreen from '../screens/MonthlyScreen';
 
 const Tab = createBottomTabNavigator();
 const AnalyticsStack = createNativeStackNavigator();
@@ -39,16 +41,19 @@ export default function AppNavigator() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarIcon: ({ color, size }) => {
-          let iconName;
-          if (route.name === 'Today') iconName = 'zap';
-          else if (route.name === 'Analytics') iconName = 'bar-chart-2';
-          else if (route.name === 'Goals') iconName = 'target';
-          return <Feather name={iconName} size={size} color={color} />;
+          const icons = {
+            Today: 'zap',
+            Weekly: 'calendar',
+            Monthly: 'layers',
+            Analytics: 'bar-chart-2',
+            Goals: 'target',
+          };
+          return <Feather name={icons[route.name]} size={size - 2} color={color} />;
         },
         tabBarActiveTintColor: '#534AB7',
         tabBarInactiveTintColor: '#bbb',
         tabBarLabelStyle: {
-          fontSize: 10,
+          fontSize: 9,
           fontWeight: '600',
         },
         tabBarStyle: {
@@ -61,6 +66,8 @@ export default function AppNavigator() {
       })}
     >
       <Tab.Screen name="Today" component={HomeScreen} />
+      <Tab.Screen name="Weekly" component={WeeklyScreen} />
+      <Tab.Screen name="Monthly" component={MonthlyScreen} />
       <Tab.Screen name="Analytics" component={AnalyticsNavigator} />
       <Tab.Screen name="Goals" component={GoalsScreen} />
     </Tab.Navigator>
